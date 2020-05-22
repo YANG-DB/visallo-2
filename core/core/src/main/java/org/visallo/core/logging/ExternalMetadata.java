@@ -12,12 +12,11 @@ import java.util.HashMap;
  */
 public class ExternalMetadata extends HashMap<String, String> {
     //region Constructors
-    public ExternalMetadata() {
+    public ExternalMetadata() {}
 
-    }
-
-    public ExternalMetadata(String id, String operation) {
+    public ExternalMetadata(String id,String clientIp, String operation) {
         this.setId(id);
+        this.setClientIp(clientIp);
         this.setOperation(operation);
     }
     //endregion
@@ -33,6 +32,20 @@ public class ExternalMetadata extends HashMap<String, String> {
             this.put("id", id);
         } else {
             this.remove("id");
+        }
+    }
+
+    //region Properties
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getClientIp() {
+        return this.get("clientIp");
+    }
+
+    public void setClientIp(String id) {
+        if (id != null) {
+            this.put("clientIp", id);
+        } else {
+            this.remove("clientIp");
         }
     }
 

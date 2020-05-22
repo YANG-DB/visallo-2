@@ -6,11 +6,9 @@ import org.visallo.web.util.RemoteAddressUtil;
 
 import javax.servlet.http.HttpServletRequest;
 
+import static org.visallo.core.logging.LogUtils.*;
+
 public class CurrentUser {
-    public static final String CURRENT_USER_REQ_ATTR_NAME = "user.current";
-    private static final String MDC_USER_ID = "userId";
-    private static final String MDC_USER_NAME = "userName";
-    private static final String MDC_CLIENT_IP_ADDRESS = "clientIpAddress";
 
     public static void set(HttpServletRequest request, User user) {
         request.setAttribute(CURRENT_USER_REQ_ATTR_NAME, user);
