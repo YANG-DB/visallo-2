@@ -20,7 +20,7 @@ import java.util.List;
 @Name("Reindex")
 @Description("Reindexes the specified elements")
 @Singleton
-public class ReindexLongRunningProcessWorker extends LongRunningProcessWorker {
+public class ReindexLongRunningProcessWorker extends LongRunningProcessWorker<Range> {
     private static final VisalloLogger LOGGER = VisalloLoggerFactory.getLogger(ReindexLongRunningProcessWorker.class);
     private static final EnumSet<FetchHint> FETCH_HINTS = FetchHint.ALL;
     private final Authorizations authorizations;
@@ -35,6 +35,10 @@ public class ReindexLongRunningProcessWorker extends LongRunningProcessWorker {
         this.graph = graph;
         this.authorizations = authorizationRepository.getGraphAuthorizations(userRepository.getSystemUser());
     }
+    @Override
+    protected VisalloLogger getLogger() {
+        return LOGGER;
+    }
 
     @Override
     public boolean isHandled(JSONObject jsonObject) {
@@ -42,7 +46,7 @@ public class ReindexLongRunningProcessWorker extends LongRunningProcessWorker {
     }
 
     @Override
-    protected void processInternal(JSONObject longRunningProcessQueueItem) {
+    protected Range processInternal(JSONObject longRunningProcessQueueItem) {
         ReindexLongRunningProcessQueueItem queueItem = ClientApiConverter.toClientApi(
                 longRunningProcessQueueItem.toString(),
                 ReindexLongRunningProcessQueueItem.class
@@ -57,6 +61,7 @@ public class ReindexLongRunningProcessWorker extends LongRunningProcessWorker {
         } else {
             throw new VisalloException("Unhandled element type: " + queueItem.getElementType());
         }
+        return range;
     }
 
     public void reindexVertices(Range range, int batchSize, Authorizations authorizations) {

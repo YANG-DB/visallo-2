@@ -21,11 +21,13 @@ import org.visallo.core.model.workspace.WorkspaceRepository;
 import org.visallo.core.security.VisibilityTranslator;
 import org.visallo.core.user.User;
 import org.visallo.core.util.ClientApiConverter;
+import org.visallo.core.util.VisalloLogger;
+import org.visallo.core.util.VisalloLoggerFactory;
 import org.visallo.web.structuredingest.core.model.StructuredIngestParser;
-import org.visallo.web.structuredingest.core.util.StructuredIngestParserFactory;
 import org.visallo.web.structuredingest.core.model.StructuredIngestQueueItem;
 import org.visallo.web.structuredingest.core.util.GraphBuilderParserHandler;
 import org.visallo.web.structuredingest.core.util.ProgressReporter;
+import org.visallo.web.structuredingest.core.util.StructuredIngestParserFactory;
 import org.visallo.web.structuredingest.core.util.mapping.ParseMapping;
 
 import java.io.InputStream;
@@ -33,7 +35,9 @@ import java.text.NumberFormat;
 
 @Name("Structured Import")
 @Description("Extracts structured data from csv, and excel")
-public class StructuredIngestProcessWorker extends LongRunningProcessWorker {
+public class StructuredIngestProcessWorker extends LongRunningProcessWorker<Boolean> {
+    private static final VisalloLogger LOGGER = VisalloLoggerFactory.getLogger(StructuredIngestProcessWorker.class);
+
     public static final String TYPE = "org-visallo-structured-ingest";
     private OntologyRepository ontologyRepository;
     private VisibilityTranslator visibilityTranslator;
@@ -47,12 +51,17 @@ public class StructuredIngestProcessWorker extends LongRunningProcessWorker {
     private LongRunningProcessRepository longRunningProcessRepository;
 
     @Override
+    protected VisalloLogger getLogger() {
+        return LOGGER;
+    }
+
+    @Override
     public boolean isHandled(JSONObject longRunningProcessQueueItem) {
         return TYPE.equals(longRunningProcessQueueItem.getString("type"));
     }
 
     @Override
-    protected void processInternal(final JSONObject longRunningProcessQueueItem) {
+    protected Boolean processInternal(final JSONObject longRunningProcessQueueItem) {
         StructuredIngestQueueItem structuredIngestQueueItem = ClientApiConverter.toClientApi(longRunningProcessQueueItem.toString(), StructuredIngestQueueItem.class);
         ParseMapping parseMapping = new ParseMapping(ontologyRepository, visibilityTranslator, structuredIngestQueueItem.getWorkspaceId(), structuredIngestQueueItem.getMapping());
         Authorizations authorizations = graph.createAuthorizations(structuredIngestQueueItem.getAuthorizations());
@@ -93,6 +102,7 @@ public class StructuredIngestProcessWorker extends LongRunningProcessWorker {
         parserHandler.reset();
         try {
             parse(vertex, rawPropertyValue, parserHandler, structuredIngestQueueItem);
+            return true;
         } catch (Exception e) {
             throw new VisalloException("Unable to ingest vertex: " + vertex, e);
         }

@@ -1,16 +1,13 @@
 package org.visallo.web;
 
 import com.google.inject.Injector;
-import org.visallo.webster.App;
-import org.visallo.webster.Handler;
-import org.visallo.webster.handlers.StaticResourceHandler;
-import org.visallo.webster.resultWriters.ResultWriterFactory;
 import org.json.JSONObject;
 import org.vertexium.ElementType;
 import org.visallo.core.bootstrap.InjectHelper;
 import org.visallo.core.config.Configuration;
 import org.visallo.core.config.VisalloResourceBundleManager;
 import org.visallo.core.exception.VisalloException;
+import org.visallo.core.logging.MethodName;
 import org.visallo.core.model.notification.SystemNotificationSeverity;
 import org.visallo.core.util.VisalloLogger;
 import org.visallo.core.util.VisalloLoggerFactory;
@@ -20,6 +17,11 @@ import org.visallo.web.parameterValueConverters.ElementTypeParameterValueConvert
 import org.visallo.web.parameterValueConverters.JSONObjectParameterValueConverter;
 import org.visallo.web.routes.notification.SystemNotificationSeverityValueConverter;
 import org.visallo.web.util.js.SourceMapType;
+import org.visallo.webster.App;
+import org.visallo.webster.Handler;
+import org.visallo.webster.RequestResponseHandler;
+import org.visallo.webster.handlers.StaticResourceHandler;
+import org.visallo.webster.resultWriters.ResultWriterFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -36,6 +38,7 @@ import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.vertexium.util.CloseableUtils.closeQuietly;
+import static org.visallo.core.logging.LogUtils.call;
 
 public class WebApp extends App {
     private static final VisalloLogger LOGGER = VisalloLoggerFactory.getLogger(WebApp.class);
@@ -97,9 +100,23 @@ public class WebApp extends App {
     protected Handler[] instantiateHandlers(Class<? extends Handler>[] handlerClasses) throws Exception {
         Handler[] handlers = new Handler[handlerClasses.length];
         for (int i = 0; i < handlerClasses.length; i++) {
-            handlers[i] = injector.getInstance(handlerClasses[i]);
+            handlers[i] = wrapLogger(injector.getInstance(handlerClasses[i]));
         }
         return handlers;
+    }
+
+    private Handler wrapLogger(Handler instance) {
+        if(RequestResponseHandler.class.isAssignableFrom(instance.getClass()) ) {
+            return (RequestResponseHandler) (request, response, chain) -> call(LOGGER.logger, MethodName.of(request.getRequestURI()),()-> {
+                try {
+                    ((RequestResponseHandler)instance).handle(request,response,chain);
+                    return true;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+        return instance;
     }
 
     @Override

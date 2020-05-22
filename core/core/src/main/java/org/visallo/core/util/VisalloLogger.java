@@ -3,7 +3,7 @@ package org.visallo.core.util;
 import org.slf4j.Logger;
 
 public class VisalloLogger {
-    private final Logger logger;
+    public final Logger logger;
 
     public VisalloLogger(final Logger logger) {
         this.logger = logger;

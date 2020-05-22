@@ -25,13 +25,16 @@ import org.visallo.core.model.workspace.WorkspaceRepository;
 import org.visallo.core.user.User;
 import org.visallo.core.util.ClientApiConverter;
 import org.visallo.core.util.JSONUtil;
+import org.visallo.core.util.VisalloLogger;
+import org.visallo.core.util.VisalloLoggerFactory;
 import org.visallo.web.clientapi.model.ClientApiImportProperty;
 
 import java.io.*;
 import java.util.Collection;
 
 @Singleton
-public class CloudImportLongRunningProcessWorker extends LongRunningProcessWorker {
+public class CloudImportLongRunningProcessWorker extends LongRunningProcessWorker<Boolean> {
+    private static final VisalloLogger LOGGER = VisalloLoggerFactory.getLogger(CloudImportLongRunningProcessWorker.class);
     private final Configuration configuration;
     private final FileImport fileImport;
     private final Graph graph;
@@ -55,6 +58,10 @@ public class CloudImportLongRunningProcessWorker extends LongRunningProcessWorke
         this.workspaceRepository = workspaceRepository;
         this.longRunningProcessRepository = longRunningProcessRepository;
     }
+    @Override
+    protected VisalloLogger getLogger() {
+        return LOGGER;
+    }
 
     @Override
     public boolean isHandled(JSONObject longRunningProcessQueueItem) {
@@ -62,7 +69,7 @@ public class CloudImportLongRunningProcessWorker extends LongRunningProcessWorke
     }
 
     @Override
-    protected void processInternal(JSONObject longRunningProcessQueueItem) {
+    protected Boolean processInternal(JSONObject longRunningProcessQueueItem) {
         CloudImportLongRunningProcessQueueItem item = ClientApiConverter.toClientApi(longRunningProcessQueueItem, CloudImportLongRunningProcessQueueItem.class);
         CloudResourceSource destination = getDestination(item.getDestination());
 
@@ -71,10 +78,12 @@ public class CloudImportLongRunningProcessWorker extends LongRunningProcessWorke
         } else {
             try {
                 download(destination, item, longRunningProcessQueueItem);
+                return true;
             } catch (Exception e) {
                 throw new VisalloException("Unable to download from cloud destination", e);
             }
         }
+        return false;
     }
 
     private CloudResourceSource getDestination(String className) {

@@ -7,6 +7,8 @@ import org.vertexium.*;
 import org.visallo.core.model.Description;
 import org.visallo.core.model.Name;
 import org.visallo.core.util.ClientApiConverter;
+import org.visallo.core.util.VisalloLogger;
+import org.visallo.core.util.VisalloLoggerFactory;
 import org.visallo.web.clientapi.model.ClientApiVertexFindPathResponse;
 
 import java.util.ArrayList;
@@ -15,7 +17,9 @@ import java.util.List;
 @Name("Find Path")
 @Description("Finds a path between two vertices")
 @Singleton
-public class FindPathLongRunningProcessWorker extends LongRunningProcessWorker {
+public class FindPathLongRunningProcessWorker extends LongRunningProcessWorker<JSONObject> {
+    private static final VisalloLogger LOGGER = VisalloLoggerFactory.getLogger(FindPathLongRunningProcessWorker.class);
+
     private final Graph graph;
     private final LongRunningProcessRepository longRunningProcessRepository;
 
@@ -34,7 +38,12 @@ public class FindPathLongRunningProcessWorker extends LongRunningProcessWorker {
     }
 
     @Override
-    public void processInternal(final JSONObject longRunningProcessQueueItem) {
+    protected VisalloLogger getLogger() {
+        return LOGGER;
+    }
+
+    @Override
+    public JSONObject processInternal(final JSONObject longRunningProcessQueueItem) {
         FindPathLongRunningProcessQueueItem findPath = ClientApiConverter.toClientApi(longRunningProcessQueueItem.toString(), FindPathLongRunningProcessQueueItem.class);
 
         Authorizations authorizations = getAuthorizations(findPath.getAuthorizations());
@@ -65,6 +74,7 @@ public class FindPathLongRunningProcessWorker extends LongRunningProcessWorker {
         JSONObject resultsJson = new JSONObject(resultsString);
         longRunningProcessQueueItem.put("results", resultsJson);
         longRunningProcessQueueItem.put("resultsCount", results.getPaths().size());
+        return resultsJson;
     }
 
     private Authorizations getAuthorizations(String[] authorizations) {
