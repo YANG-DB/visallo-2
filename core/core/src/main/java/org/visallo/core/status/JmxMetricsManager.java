@@ -7,7 +7,7 @@ import javax.management.ObjectName;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class JmxMetricsManager implements MetricsManager {
-    private static final MetricRegistry REGISTRY;
+    public static final MetricRegistry REGISTRY;
     private static final JmxReporter JMX_REPORTER;
     private static final AtomicInteger ID = new AtomicInteger(0);
     private static final String DOMAIN = "visallo";
