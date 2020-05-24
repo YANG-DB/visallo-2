@@ -19,7 +19,7 @@
         "logger": {
           "type": "keyword"
         },
-        "requestExternalOperation": {
+        "clientIpAddress": {
           "type": "keyword"
         },
         "methodName": {
@@ -61,7 +61,7 @@
         "host": {
           "type": "keyword"
         },
-        "requestExternalId": {
+        "userId": {
           "type": "keyword"
         },
         "responseLength": {

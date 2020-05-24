@@ -1,0 +1,104 @@
+version: '3.6'
+
+services:
+  zookeeper:
+    image: zookeeper:3.4.13
+    hostname: zookeeper
+    container_name: zookeeper
+    restart: always
+    volumes:
+      - ${PERSISTENT_DIR}/data/zookeeper/data:/data
+      - ${PERSISTENT_DIR}/data/zookeeper/datalog:/datalog
+    ports:
+      - "2181:2181"
+      - "2888:2888"
+      - "3888:3888"
+
+  rabbitmq:
+    image: rabbitmq:3.7.5-management-alpine
+    hostname: rabbitmq
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ${PERSISTENT_DIR}/data/rabbitmq:/var/lib/rabbitmq
+
+  nifi:
+    image: apache/nifi:latest
+    ports:
+      - 8080 # Unsecured HTTP Web Port
+    environment:
+      - NIFI_WEB_HTTP_PORT=8080
+      - NIFI_CLUSTER_IS_NODE=true
+      - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
+      - NIFI_ZK_CONNECT_STRING=zookeeper:2181
+      - NIFI_ELECTION_MAX_WAIT=1 min
+    depends_on:
+      - zookeeper
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+    container_name: elasticsearch
+    environment:
+      - cluster.name=knowledge
+      - http.host=0.0.0.0
+      - network.publish_host=127.0.0.1
+      - transport.tcp.port=9300
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g -XX:-UseConcMarkSweepGC"
+      - path.repo=/home/user/backup
+    ports:
+      - "9300:9300"
+      - "9200:9200"
+    ulimits:
+      nofile:
+        soft: "262144"
+        hard: "262144"
+    volumes:
+      - ${PERSISTENT_DIR}/data/elasticsearch:/home/user/elasticsearch/data/
+      - ${PERSISTENT_DIR}/data/esbackup/:/home/user/backup
+
+  yangdb:
+    image: yangdb/yang.db:Jan-2020-RC2-fix_April
+    container_name: yangdb
+    restart: always
+    volumes:
+      - ${PERSISTENT_DIR}/config/fuse/application.conf:/opt/engine/config/application.conf
+      - ${PERSISTENT_DIR}/config/fuse/logback.xml:/opt/engine/config/logback.xml
+      - ${PERSISTENT_DIR}/config/fuse/start-fuse-service.sh:/opt/engine/start-fuse-service.sh
+    ports:
+      - 8888:8888
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_CLUSTER_NAME=knowledge
+    depends_on:
+      - elasticsearch
+
+  es-exporter:
+    image: justwatch/elasticsearch_exporter:1.1.0
+    container_name: es-exporter
+    environment:
+      - ES_URI=http://elasticsearch:9200
+    command:
+      - '--es.uri=http://elasticsearch:9200'
+    restart: always
+    ports:
+      - "127.0.0.1:9114:9114"
+
+  cerebro:
+    image: lmenezes/cerebro
+    container_name: cerebro
+    restart: always
+    ports:
+      - 9000:9000
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.5.4
+    container_name: kibana-6.5.4
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
